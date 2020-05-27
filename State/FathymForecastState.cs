@@ -17,14 +17,14 @@ using Newtonsoft.Json.Converters;
 using System.Runtime.Serialization;
 using System.Collections.Generic;
 
-namespace LCU.State.API.NapkinIDE.NapkinIDE.ReplaceThis.State
+namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
 {
     [Serializable]
     [DataContract]
-    public class ReplaceThisState
+    public class FathymForecastState
     {
         #region Constants
-        public const string HUB_NAME = "replacethis";
+        public const string HUB_NAME = "fathymforecast";
         #endregion
         
         [DataMember]
