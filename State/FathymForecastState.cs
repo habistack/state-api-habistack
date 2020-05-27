@@ -29,5 +29,27 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
         
         [DataMember]
         public virtual bool Loading { get; set; }
+        
+        [DataMember]
+        public virtual UsageStateTypes UsageState { get; set; }
+    }
+
+    [DataContract]
+    public enum UsageStateTypes
+    {
+        [EnumMember]
+        Active,
+        
+        [EnumMember]
+        Inactive,
+        
+        [EnumMember]
+        Overage,
+        
+        [EnumMember]
+        Revoked,
+        
+        [EnumMember]
+        Warning        
     }
 }

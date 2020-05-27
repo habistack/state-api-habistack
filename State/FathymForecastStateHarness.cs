@@ -40,9 +40,29 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
         #endregion
 
         #region API Methods
-        public virtual void CompleteBoot()
+        public virtual async Task<Status> CreateAPISubscription(EnterpriseArchitectClient entArch, string entApiKey, string username)
         {
-            // State.L = true;
+            //  Create user record in API Management - User is not user, but rather entApiKey
+
+            //  Create Product subscription in API Management
+            //  New endpoint on Enterprise Architect for creating user record for enterprise and initial product subscriptin from Azure API Management
+            // var response = await entArch.InitializeForecastAPIKeys(entApiKey, keyType);
+
+            //  Note:  Initial subscription creation may create both keys, therefore both following lines would not be called
+            await GenerateAPIKeys(entArch, entApiKey, "Primary");
+            
+            await GenerateAPIKeys(entArch, entApiKey, "Secondary");
+
+            return Status.Success;
+        }
+
+        public virtual async Task<Status> GenerateAPIKeys(EnterpriseArchitectClient entArch, string entApiKey, string keyType)
+        {
+            //  Call generate api keys on app arch for key type (primary, secondary)
+            //  New endpoint on Enterprise Architect for regenerating a specific key in the subscription from Azure API Management
+            // var response = await entArch.GenerateForecastAPIKeys(entApiKey, keyType);
+
+            return Status.Success;
         }
         #endregion
     }
