@@ -8,16 +8,16 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Microsoft.Azure.WebJobs.Extensions.SignalRService;
-using LCU.State.API.NapkinIDE.NapkinIDE.ReplaceThis.State;
+using LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State;
 
-namespace LCU.State.API.NapkinIDE.NapkinIDE.ReplaceThis.Host
+namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.Host
 {
     public static class Negotiate
     {
         [FunctionName("negotiate")]
         public static SignalRConnectionInfo Run(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", "options")] HttpRequest req,
-            [SignalRConnectionInfo(HubName = ReplaceThisState.HUB_NAME, UserId = "{headers.x-ms-client-principal-id}")] SignalRConnectionInfo connectionInfo)
+            [SignalRConnectionInfo(HubName = FathymForecastState.HUB_NAME, UserId = "{headers.x-ms-client-principal-id}")] SignalRConnectionInfo connectionInfo)
         {
             return connectionInfo;
         }
