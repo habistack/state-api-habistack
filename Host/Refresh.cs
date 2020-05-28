@@ -18,6 +18,7 @@ using LCU.Personas.Client.Applications;
 using LCU.StateAPI.Utilities;
 using System.Security.Claims;
 using LCU.Personas.Client.Enterprises;
+using LCU.Personas.Client.Identity;
 using LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State;
 
 namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.Host
@@ -29,11 +30,15 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.Host
 
     public class Refresh
     {
-        protected EnterpriseManagerClient entMgr;
+        protected EnterpriseArchitectClient entArch;
 
-        public Refresh(EnterpriseManagerClient entMgr)
+        protected IdentityManagerClient idMgr;
+
+        public Refresh(EnterpriseArchitectClient entArch, IdentityManagerClient idMgr)
         {
-            this.entMgr = entMgr;
+            this.entArch = entArch;
+
+            this.idMgr = idMgr;
         }
 
         [FunctionName("Refresh")]
@@ -48,7 +53,7 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.Host
 
                 var stateDetails = StateUtils.LoadStateDetails(req);
 
-                return Status.Success;
+                return await harness.Refresh(entArch, idMgr, stateDetails.EnterpriseAPIKey, stateDetails.Username);
             });
         }
     }

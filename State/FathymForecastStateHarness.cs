@@ -18,6 +18,7 @@ using Newtonsoft.Json.Converters;
 using System.Runtime.Serialization;
 using System.Collections.Generic;
 using LCU.Personas.Client.Enterprises;
+using LCU.Personas.Client.Identity;
 using LCU.Personas.Client.DevOps;
 using LCU.Personas.Enterprises;
 using LCU.Personas.Client.Applications;
@@ -42,27 +43,68 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
         #region API Methods
         public virtual async Task<Status> CreateAPISubscription(EnterpriseArchitectClient entArch, string entApiKey, string username)
         {
-            //  Create user record in API Management - User is not user, but rather entApiKey
+            if (State.HasAccess)
+            {
+                //  Create user record in API Management - User is not user, but rather entApiKey...  Ensure only one user created per enterprise
+                //  Create Product subscription in API Management
+                //  New endpoint on Enterprise Architect for creating user record for enterprise and initial product subscriptin from Azure API Management
+                //  var response = await entArch.EnsureForecastAPISubscription(entApiKey, keyType);
 
-            //  Create Product subscription in API Management
-            //  New endpoint on Enterprise Architect for creating user record for enterprise and initial product subscriptin from Azure API Management
-            // var response = await entArch.InitializeForecastAPIKeys(entApiKey, keyType);
+                //  Note:  Initial subscription creation may create both keys, therefore both following lines would not be called
+                // await GenerateAPIKeys(entArch, entApiKey, "Primary");
 
-            //  Note:  Initial subscription creation may create both keys, therefore both following lines would not be called
-            await GenerateAPIKeys(entArch, entApiKey, "Primary");
-            
-            await GenerateAPIKeys(entArch, entApiKey, "Secondary");
+                // await GenerateAPIKeys(entArch, entApiKey, "Secondary");
+            }
 
-            return Status.Success;
+            return await LoadAPIKeys(entArch, entApiKey);
         }
 
         public virtual async Task<Status> GenerateAPIKeys(EnterpriseArchitectClient entArch, string entApiKey, string keyType)
         {
-            //  Call generate api keys on app arch for key type (primary, secondary)
-            //  New endpoint on Enterprise Architect for regenerating a specific key in the subscription from Azure API Management
-            // var response = await entArch.GenerateForecastAPIKeys(entApiKey, keyType);
+            if (State.HasAccess)
+            {
+                //  Call generate api keys on app arch for key type (primary, secondary)
+                //  New endpoint on Enterprise Architect for regenerating a specific key in the subscription from Azure API Management
+                // var response = await entArch.GenerateForecastAPIKeys(entApiKey, keyType);
+            }
 
             return Status.Success;
+        }
+
+        public virtual async Task<Status> HasAccess(IdentityManagerClient idMgr, string entApiKey)
+        {
+            //  Verify that a user has a forecast license, and prevent call if none
+            //  await idMgr.HasLicenseAccess()
+
+            State.HasAccess = true;
+
+            return Status.Success;
+        }
+
+        public virtual async Task<Status> LoadAPIKeys(EnterpriseArchitectClient entArch, string entApiKey)
+        {
+            if (State.HasAccess)
+            {
+                //  Call generate api keys on app arch for key type (primary, secondary)
+                //  New endpoint on Enterprise Architect for regenerating a specific key in the subscription from Azure API Management
+                // var response = await entArch.LoadForecastAPIKeys(entApiKey);
+            }
+            else
+                State.APIKeys = new Dictionary<string, string>();
+
+            return Status.Success;
+        }
+
+        public virtual async Task<Status> Refresh(EnterpriseArchitectClient entArch, IdentityManagerClient idMgr, string entApiKey, string username)
+        {
+            Status status = await HasAccess(idMgr, entApiKey);
+
+            if (!State.APIKeys.IsNullOrEmpty())
+                status = await CreateAPISubscription(entArch, entApiKey, username);
+            else
+                status =await LoadAPIKeys(entArch, entApiKey);
+
+            return status;
         }
         #endregion
     }
