@@ -83,14 +83,18 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
 
         public virtual async Task<Status> LoadAPIKeys(EnterpriseArchitectClient entArch, string entApiKey)
         {
+                State.APIKeys = new Dictionary<string, string>();
+
             if (State.HasAccess)
             {
                 //  Call generate api keys on app arch for key type (primary, secondary)
                 //  New endpoint on Enterprise Architect for regenerating a specific key in the subscription from Azure API Management
                 // var response = await entArch.LoadForecastAPIKeys(entApiKey);
+
+                State.APIKeys.Add("Primary", "as;ldfjas;dlkfasd;fkjasdlkf");
+                
+                State.APIKeys.Add("Secndary", "pqwoieurpqwoeirua,zmxcnqp");
             }
-            else
-                State.APIKeys = new Dictionary<string, string>();
 
             return Status.Success;
         }
