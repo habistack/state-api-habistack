@@ -25,7 +25,9 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.Host
     [Serializable]
     [DataContract]
     public class CreateAPISubscriptionRequest : BaseRequest
-    { }
+    { 
+
+    }
 
     public class CreateAPISubscription
     {

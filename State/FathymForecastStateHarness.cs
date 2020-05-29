@@ -45,15 +45,10 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
         {
             if (State.HasAccess)
             {
-                //  Create user record in API Management - User is not user, but rather entApiKey...  Ensure only one user created per enterprise
-                //  Create Product subscription in API Management
-                //  New endpoint on Enterprise Architect for creating user record for enterprise and initial product subscriptin from Azure API Management
-                //  var response = await entArch.EnsureForecastAPISubscription(entApiKey, keyType);
-
-                //  Note:  Initial subscription creation may create both keys, therefore both following lines would not be called
-                // await GenerateAPIKeys(entArch, entApiKey, "Primary");
-
-                // await GenerateAPIKeys(entArch, entApiKey, "Secondary");
+                var response = await entArch.EnsureForecastAPISubscription(new EnsureForecastAPISubscriptionRequset()
+                {
+                    SubscriptionType = $"{State.AccessLicenseType}-{State.AccessPlanGroup}".ToLower()
+                }, entApiKey, username);
             }
 
             return await LoadAPIKeys(entArch, entApiKey);
@@ -63,37 +58,40 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
         {
             if (State.HasAccess)
             {
-                //  Call generate api keys on app arch for key type (primary, secondary)
-                //  New endpoint on Enterprise Architect for regenerating a specific key in the subscription from Azure API Management
-                // var response = await entArch.GenerateForecastAPIKeys(entApiKey, keyType);
+                var response = await entArch.GenerateForecastAPIKeys(new GenerateForecastAPIKeysRequset()
+                {
+                    KeyType = keyType
+                }, entApiKey);
             }
 
-            return Status.Success;
+            return await LoadAPIKeys(entArch, entApiKey);
         }
 
         public virtual async Task<Status> HasAccess(IdentityManagerClient idMgr, string entApiKey)
         {
-            //  Verify that a user has a forecast license, and prevent call if none
-            //  await idMgr.HasLicenseAccess()
+            var hasAccess = await idMgr.HasLicenseAccess(entApiKey, Personas.AllAnyTypes.All, new List<string>() { "forecast" });
 
-            State.HasAccess = true;
+            State.HasAccess = hasAccess.Status;
+
+            if (State.HasAccess)
+            {
+                State.AccessLicenseType = hasAccess.Model.Metadata["LicenseType"].ToString();
+
+                State.AccessPlanGroup = hasAccess.Model.Metadata["PlanGroup"].ToString();
+            }
 
             return Status.Success;
         }
 
         public virtual async Task<Status> LoadAPIKeys(EnterpriseArchitectClient entArch, string entApiKey)
         {
-                State.APIKeys = new Dictionary<string, string>();
+            State.APIKeys = new Dictionary<string, string>();
 
             if (State.HasAccess)
             {
-                //  Call generate api keys on app arch for key type (primary, secondary)
-                //  New endpoint on Enterprise Architect for regenerating a specific key in the subscription from Azure API Management
-                // var response = await entArch.LoadForecastAPIKeys(entApiKey);
+                var response = await entArch.LoadForecastAPIKeys(entApiKey);
 
-                State.APIKeys.Add("Primary", "as;ldfjas;dlkfasd;fkjasdlkf");
-                
-                State.APIKeys.Add("Secndary", "pqwoieurpqwoeirua,zmxcnqp");
+                State.APIKeys = response.Model.Metadata.ToDictionary(m => m.Key, m => m.Value.ToString());
             }
 
             return Status.Success;
@@ -106,7 +104,7 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
             if (!State.APIKeys.IsNullOrEmpty())
                 status = await CreateAPISubscription(entArch, entApiKey, username);
             else
-                status =await LoadAPIKeys(entArch, entApiKey);
+                status = await LoadAPIKeys(entArch, entApiKey);
 
             return status;
         }

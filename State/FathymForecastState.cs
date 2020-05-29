@@ -28,6 +28,12 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
         #endregion
         
         [DataMember]
+        public virtual string AccessLicenseType { get; set; }
+        
+        [DataMember]
+        public virtual string AccessPlanGroup { get; set; }
+        
+        [DataMember]
         public virtual Dictionary<string, string> APIKeys { get; set; }
         
         [DataMember]

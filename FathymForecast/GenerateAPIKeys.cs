@@ -22,7 +22,6 @@ using LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State;
 
 namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.Host
 {
-    [Serializable]
     [DataContract]
     public class GenerateAPIKeysRequest : BaseRequest
     {
