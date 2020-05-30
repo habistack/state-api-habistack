@@ -49,6 +49,8 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
                 {
                     SubscriptionType = $"{State.AccessLicenseType}-{State.AccessPlanGroup}".ToLower()
                 }, entApiKey, username);
+
+                //  TODO:  Handle API error
             }
 
             return await LoadAPIKeys(entArch, entApiKey);
@@ -62,6 +64,8 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
                 {
                     KeyType = keyType
                 }, entApiKey);
+
+                //  TODO:  Handle API error
             }
 
             return await LoadAPIKeys(entArch, entApiKey);
@@ -91,6 +95,8 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
             {
                 var response = await entArch.LoadForecastAPIKeys(entApiKey);
 
+                //  TODO:  Handle API error
+
                 State.APIKeys = response.Model.Metadata.ToDictionary(m => m.Key, m => m.Value.ToString());
             }
 
@@ -101,7 +107,7 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
         {
             Status status = await HasAccess(idMgr, entApiKey);
 
-            if (!State.APIKeys.IsNullOrEmpty())
+            if (State.APIKeys.IsNullOrEmpty())
                 status = await CreateAPISubscription(entArch, entApiKey, username);
             else
                 status = await LoadAPIKeys(entArch, entApiKey);
