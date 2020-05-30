@@ -29,6 +29,7 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
     public class FathymForecastStateHarness : LCUStateHarness<FathymForecastState>
     {
         #region Fields
+        protected readonly string forecastEntLookup;
         #endregion
 
         #region Properties
@@ -37,7 +38,9 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
         #region Constructors
         public FathymForecastStateHarness(FathymForecastState state)
             : base(state ?? new FathymForecastState())
-        { }
+        { 
+            var entApiKey = Environment.GetEnvironmentVariable("LCU-ENTERPRISE-LOOKUP");
+}
         #endregion
 
         #region API Methods

@@ -23,7 +23,7 @@ namespace LCU.State.API.Habistack.FathymForecast
         #region Helpers
         public virtual async Task<string> runAction(IDurableOrchestrationClient starter, ILogger log)
         {
-            var entApiKey = Environment.GetEnvironmentVariable("LCU-ENTERPRISE-API-KEY");
+            var entApiKey = Environment.GetEnvironmentVariable("LCU-ENTERPRISE-LOOKUP");
 
             try
             {
