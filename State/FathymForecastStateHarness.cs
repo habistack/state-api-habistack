@@ -38,9 +38,9 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
         #region Constructors
         public FathymForecastStateHarness(FathymForecastState state)
             : base(state ?? new FathymForecastState())
-        { 
-            var entApiKey = Environment.GetEnvironmentVariable("LCU-ENTERPRISE-LOOKUP");
-}
+        {
+            forecastEntLookup = Environment.GetEnvironmentVariable("LCU-ENTERPRISE-LOOKUP");
+        }
         #endregion
 
         #region API Methods
@@ -51,32 +51,32 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
                 var response = await entArch.EnsureForecastAPISubscription(new EnsureForecastAPISubscriptionRequset()
                 {
                     SubscriptionType = $"{State.AccessLicenseType}-{State.AccessPlanGroup}".ToLower()
-                }, entApiKey, username);
+                }, forecastEntLookup, username);
 
                 //  TODO:  Handle API error
             }
 
-            return await LoadAPIKeys(entArch, entApiKey);
+            return await LoadAPIKeys(entArch, entApiKey, username);
         }
 
-        public virtual async Task<Status> GenerateAPIKeys(EnterpriseArchitectClient entArch, string entApiKey, string keyType)
+        public virtual async Task<Status> GenerateAPIKeys(EnterpriseArchitectClient entArch, string entApiKey, string username, string keyType)
         {
             if (State.HasAccess)
             {
                 var response = await entArch.GenerateForecastAPIKeys(new GenerateForecastAPIKeysRequset()
                 {
                     KeyType = keyType
-                }, entApiKey);
+                }, forecastEntLookup, username);
 
                 //  TODO:  Handle API error
             }
 
-            return await LoadAPIKeys(entArch, entApiKey);
+            return await LoadAPIKeys(entArch, forecastEntLookup, username);
         }
 
-        public virtual async Task<Status> HasAccess(IdentityManagerClient idMgr, string entApiKey)
+        public virtual async Task<Status> HasAccess(IdentityManagerClient idMgr, string entApiKey, string username)
         {
-            var hasAccess = await idMgr.HasLicenseAccess(entApiKey, Personas.AllAnyTypes.All, new List<string>() { "forecast" });
+            var hasAccess = await idMgr.HasLicenseAccess(forecastEntLookup, username, Personas.AllAnyTypes.All, new List<string>() { "forecast" });
 
             State.HasAccess = hasAccess.Status;
 
@@ -90,13 +90,13 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
             return Status.Success;
         }
 
-        public virtual async Task<Status> LoadAPIKeys(EnterpriseArchitectClient entArch, string entApiKey)
+        public virtual async Task<Status> LoadAPIKeys(EnterpriseArchitectClient entArch, string entApiKey, string username)
         {
             State.APIKeys = new Dictionary<string, string>();
 
             if (State.HasAccess)
             {
-                var response = await entArch.LoadForecastAPIKeys(entApiKey);
+                var response = await entArch.LoadForecastAPIKeys(forecastEntLookup, username);
 
                 //  TODO:  Handle API error
 
@@ -108,12 +108,12 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
 
         public virtual async Task<Status> Refresh(EnterpriseArchitectClient entArch, IdentityManagerClient idMgr, string entApiKey, string username)
         {
-            Status status = await HasAccess(idMgr, entApiKey);
+            Status status = await HasAccess(idMgr, entApiKey, username);
 
             if (State.APIKeys.IsNullOrEmpty())
                 status = await CreateAPISubscription(entArch, entApiKey, username);
             else
-                status = await LoadAPIKeys(entArch, entApiKey);
+                status = await LoadAPIKeys(entArch, entApiKey, username);
 
             return status;
         }

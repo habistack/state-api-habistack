@@ -50,7 +50,7 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.Host
 
                 var stateDetails = StateUtils.LoadStateDetails(req);
 
-                return await harness.GenerateAPIKeys(entArch, stateDetails.EnterpriseAPIKey, dataReq.KeyType);
+                return await harness.GenerateAPIKeys(entArch, stateDetails.EnterpriseAPIKey, stateDetails.Username, dataReq.KeyType);
             });
         }
     }
