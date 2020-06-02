@@ -100,7 +100,7 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
 
                 //  TODO:  Handle API error
 
-                State.APIKeys = response.Model.Metadata.ToDictionary(m => m.Key, m => m.Value.ToString());
+                State.APIKeys = response.Model?.Metadata.ToDictionary(m => m.Key, m => m.Value.ToString());
             }
 
             return Status.Success;
@@ -110,10 +110,13 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
         {
             Status status = await HasAccess(idMgr, entApiKey, username);
 
-            if (State.APIKeys.IsNullOrEmpty())
-                status = await CreateAPISubscription(entArch, entApiKey, username);
-            else
+            if (status)
+            {
                 status = await LoadAPIKeys(entArch, entApiKey, username);
+
+                if (State.APIKeys.IsNullOrEmpty())
+                    status = await CreateAPISubscription(entArch, entApiKey, username);
+            }
 
             return status;
         }
