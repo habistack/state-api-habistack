@@ -29,6 +29,8 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
     public class FathymForecastStateHarness : LCUStateHarness<FathymForecastState>
     {
         #region Fields
+        protected readonly string lcuApiSiteUrl;
+        
         protected readonly string forecastEntLookup;
         #endregion
 
@@ -39,6 +41,8 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
         public FathymForecastStateHarness(FathymForecastState state)
             : base(state ?? new FathymForecastState())
         {
+            lcuApiSiteUrl = Environment.GetEnvironmentVariable("LCU-API-SITE-URL");
+            
             forecastEntLookup = Environment.GetEnvironmentVariable("LCU-ENTERPRISE-LOOKUP");
         }
         #endregion
@@ -117,7 +121,7 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
                 if (State.APIKeys.IsNullOrEmpty())
                     status = await CreateAPISubscription(entArch, entApiKey, username);
 
-                State.ForecastClientID = $"{forecastEntLookup}-{username}".ToMD5Hash();
+                State.APISiteURL = lcuApiSiteUrl;
             }
 
             return status;

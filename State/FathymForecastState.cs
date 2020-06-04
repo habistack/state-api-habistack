@@ -37,7 +37,7 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
         public virtual Dictionary<string, string> APIKeys { get; set; }
         
         [DataMember]
-        public virtual string ForecastClientID { get; set; }
+        public virtual string APISiteURL { get; set; }
         
         [DataMember]
         public virtual bool HasAccess { get; set; }
