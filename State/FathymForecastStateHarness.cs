@@ -116,6 +116,8 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
 
                 if (State.APIKeys.IsNullOrEmpty())
                     status = await CreateAPISubscription(entArch, entApiKey, username);
+
+                State.ForecastClientID = entApiKey.ToMD5Hash();
             }
 
             return status;
