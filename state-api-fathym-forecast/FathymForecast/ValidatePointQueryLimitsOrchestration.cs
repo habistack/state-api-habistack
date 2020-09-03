@@ -39,17 +39,17 @@ namespace LCU.State.API.Habistack.FathymForecast
         [FunctionName("ValidatePointQueryLimitsOrchestration")]
         public virtual async Task<Status> RunOrchestrator([OrchestrationTrigger] IDurableOrchestrationContext context, ILogger log)
         {
-            string entApiKey;
+            string entLookup;
 
             try
             {
                 var actionArgs = context.GetInput<ExecuteActionArguments>();
 
-                entApiKey = actionArgs.StateDetails.EnterpriseAPIKey;
+                entLookup = actionArgs.StateDetails.EnterpriseLookup;
             }
             catch
             {
-                entApiKey = context.GetInput<string>();
+                entLookup = context.GetInput<string>();
             }
 
             if (!context.IsReplaying)
@@ -64,7 +64,7 @@ namespace LCU.State.API.Habistack.FathymForecast
             var status = Status.Initialized;
 
             var entsWithLicense = await context.CallActivityWithRetryAsync<List<string>>(
-                "ValidatePointQueryLimitsOrchestration_FindEnterprisesWithForecastLicense", genericRetryOptions, entApiKey);
+                "ValidatePointQueryLimitsOrchestration_FindEnterprisesWithForecastLicense", genericRetryOptions, entLookup);
 
             var invalidEnts = new List<Tuple<string, Status>>();
 
@@ -73,10 +73,10 @@ namespace LCU.State.API.Habistack.FathymForecast
                 // if (!context.IsReplaying)
                 //     log.LogInformation($"...: {stateCtxt.ToJSON()}");
 
-                var entValidateTasks = entsWithLicense.Select(entApiKey =>
+                var entValidateTasks = entsWithLicense.Select(entLookup =>
                 {
                     return context.CallActivityWithRetryAsync<Tuple<string, Status>>(
-                        "ValidatePointQueryLimitsOrchestration_ValidateEnterprisesForecastPointQueries", genericRetryOptions, entApiKey);
+                        "ValidatePointQueryLimitsOrchestration_ValidateEnterprisesForecastPointQueries", genericRetryOptions, entLookup);
                 }).ToList();
 
                 invalidEnts = (await Task.WhenAll(entValidateTasks)).Where(s => !s.Item2).ToList();
@@ -109,38 +109,38 @@ namespace LCU.State.API.Habistack.FathymForecast
         }
 
         [FunctionName("ValidatePointQueryLimitsOrchestration_FindEnterprisesWithForecastLicense")]
-        public virtual async Task<List<string>> FindEnterprisesWithForecastLicense([ActivityTrigger] string parentEntApiKey, ILogger log)
+        public virtual async Task<List<string>> FindEnterprisesWithForecastLicense([ActivityTrigger] string parententLookup, ILogger log)
         {
             log.LogInformation($"FindEnterprisesWithForecastLicense...");
 
-            // var response = await idMgr.ListLicenseAccessTokensForEnterprise(parentEntApiKey, new List<string>() { "forecast" });
+            // var response = await idMgr.ListLicenseAccessTokensForEnterprise(parententLookup, new List<string>() { "forecast" });
 
-            //  key:string is the entApiKey....
+            //  key:string is the entLookup....
             return new List<string>();
         }
 
         [FunctionName("ValidatePointQueryLimitsOrchestration_ValidateEnterprisesForecastPointQueries")]
-        public virtual async Task<Tuple<string, Status>> ValidateEnterprisesWithForecastLicense([ActivityTrigger] string entApiKey, ILogger log)
+        public virtual async Task<Tuple<string, Status>> ValidateEnterprisesWithForecastLicense([ActivityTrigger] string entLookup, ILogger log)
         {
             log.LogInformation($"ValidateEnterprisesWithForecastLicense...");
 
-            // var response = await entArch.ValidateForecastPointQueries(entApiKey);
+            // var response = await entArch.ValidateForecastPointQueries(entLookup);
 
-            return new Tuple<string, Status>(entApiKey, Status.Success);
+            return new Tuple<string, Status>(entLookup, Status.Success);
         }
 
         [FunctionName("ValidatePointQueryLimitsOrchestration_RevokeEnterpriseForecastLicense")]
-        public virtual async Task<Status> RevokeEnterpriseForecastLicense([ActivityTrigger] string entApiKey, ILogger log)
+        public virtual async Task<Status> RevokeEnterpriseForecastLicense([ActivityTrigger] string entLookup, ILogger log)
         {
             var enterprises = new List<string>();
 
             log.LogInformation($"RevokeEnterpriseForecastLicense...");
 
             //  New endpoint on the Identity Manager persona to revoke all licenses for all users under an enterprise
-            // var response = await idMgr.RevokeLicenseAccessTokensForEnterprise(entApiKey, new List<string>() { "forecast" });
+            // var response = await idMgr.RevokeLicenseAccessTokensForEnterprise(entLookup, new List<string>() { "forecast" });
 
             //  New endpoint on Enterprise Architect for revoking the subscription from Azure API Management
-            // var response = await entArch.RevokeForecastAPIKeys(entApiKey);
+            // var response = await entArch.RevokeForecastAPIKeys(entLookup);
 
             return Status.Success;
         }

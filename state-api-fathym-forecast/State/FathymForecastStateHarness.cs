@@ -48,7 +48,7 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
         #endregion
 
         #region API Methods
-        public virtual async Task<Status> CreateAPISubscription(EnterpriseArchitectClient entArch, string entApiKey, string username)
+        public virtual async Task<Status> CreateAPISubscription(EnterpriseArchitectClient entArch, string entLookup, string username)
         {
             if (State.HasAccess)
             {
@@ -60,10 +60,10 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
                 //  TODO:  Handle API error
             }
 
-            return await LoadAPIKeys(entArch, entApiKey, username);
+            return await LoadAPIKeys(entArch, entLookup, username);
         }
 
-        public virtual async Task<Status> GenerateAPIKeys(EnterpriseArchitectClient entArch, string entApiKey, string username, string keyType)
+        public virtual async Task<Status> GenerateAPIKeys(EnterpriseArchitectClient entArch, string entLookup, string username, string keyType)
         {
             if (State.HasAccess)
             {
@@ -78,7 +78,7 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
             return await LoadAPIKeys(entArch, forecastEntLookup, username);
         }
 
-        public virtual async Task<Status> HasAccess(IdentityManagerClient idMgr, string entApiKey, string username)
+        public virtual async Task<Status> HasAccess(IdentityManagerClient idMgr, string entLookup, string username)
         {
             var hasAccess = await idMgr.HasLicenseAccess(forecastEntLookup, username, Personas.AllAnyTypes.All, new List<string>() { "forecast" });
 
@@ -94,7 +94,7 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
             return Status.Success;
         }
 
-        public virtual async Task<Status> LoadAPIKeys(EnterpriseArchitectClient entArch, string entApiKey, string username)
+        public virtual async Task<Status> LoadAPIKeys(EnterpriseArchitectClient entArch, string entLookup, string username)
         {
             State.APIKeys = new Dictionary<string, string>();
 
@@ -110,16 +110,16 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
             return Status.Success;
         }
 
-        public virtual async Task<Status> Refresh(EnterpriseArchitectClient entArch, IdentityManagerClient idMgr, string entApiKey, string username)
+        public virtual async Task<Status> Refresh(EnterpriseArchitectClient entArch, IdentityManagerClient idMgr, string entLookup, string username)
         {
-            Status status = await HasAccess(idMgr, entApiKey, username);
+            Status status = await HasAccess(idMgr, entLookup, username);
 
             if (status)
             {
-                status = await LoadAPIKeys(entArch, entApiKey, username);
+                status = await LoadAPIKeys(entArch, entLookup, username);
 
                 if (State.APIKeys.IsNullOrEmpty())
-                    status = await CreateAPISubscription(entArch, entApiKey, username);
+                    status = await CreateAPISubscription(entArch, entLookup, username);
 
                 State.APISiteURL = lcuApiSiteUrl;
             }

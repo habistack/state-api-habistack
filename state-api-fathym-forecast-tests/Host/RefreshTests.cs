@@ -22,7 +22,7 @@ namespace state_api_fathym_forecast_tests
         [TestMethod]
         public async Task TestRefresh()
         {
-            LcuEntApiKey = "";            
+            LcuentLookup = "";            
             PrincipalId = "";
 
             addRequestHeaders();

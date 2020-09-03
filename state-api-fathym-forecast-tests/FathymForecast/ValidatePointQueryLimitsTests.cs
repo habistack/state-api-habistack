@@ -22,7 +22,7 @@ namespace state_api_fathym_forecast_tests
         [TestMethod]
         public async Task TestValidatePointQueryLimits()
         {
-            LcuEntApiKey = "";            
+            LcuentLookup = "";            
             PrincipalId = "";
 
             addRequestHeaders();
@@ -43,7 +43,7 @@ namespace state_api_fathym_forecast_tests
         [TestMethod]
         public async Task TestValidatePointQueryLimitsTimer()
         {
-            LcuEntApiKey = "";            
+            LcuentLookup = "";            
             PrincipalId = "";
 
             addRequestHeaders();

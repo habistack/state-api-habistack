@@ -22,7 +22,7 @@ namespace state_api_fathym_forecast_tests
         [TestMethod]
         public async Task TestValidatePointQueryLimitsOrchestration()
         {
-            LcuEntApiKey = "";            
+            LcuentLookup = "";            
             PrincipalId = "";
 
             addRequestHeaders();
@@ -43,7 +43,7 @@ namespace state_api_fathym_forecast_tests
         [TestMethod]
         public async Task TestFindEnterprisesWithForecastLicense()
         {
-            LcuEntApiKey = "";            
+            LcuentLookup = "";            
             PrincipalId = "";
 
             addRequestHeaders();
@@ -64,7 +64,7 @@ namespace state_api_fathym_forecast_tests
         [TestMethod]
         public async Task TestValidateEnterprisesForecastPointQueries()
         {
-            LcuEntApiKey = "";            
+            LcuentLookup = "";            
             PrincipalId = "";
 
             addRequestHeaders();
@@ -85,7 +85,7 @@ namespace state_api_fathym_forecast_tests
         [TestMethod]
         public async Task TestRevokeEnterpriseForecastLicense()
         {
-            LcuEntApiKey = "";            
+            LcuentLookup = "";            
             PrincipalId = "";
 
             addRequestHeaders();
