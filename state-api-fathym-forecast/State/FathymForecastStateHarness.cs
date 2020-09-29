@@ -86,9 +86,11 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
 
             if (State.HasAccess)
             {
-                State.AccessLicenseType = hasAccess.Model.Metadata["LicenseType"].ToString();
+                if (hasAccess.Model.Metadata.ContainsKey("LicenseType"))
+                    State.AccessLicenseType = hasAccess.Model.Metadata["LicenseType"].ToString();
 
-                State.AccessPlanGroup = hasAccess.Model.Metadata["PlanGroup"].ToString();
+                if (hasAccess.Model.Metadata.ContainsKey("PlanGroup"))
+                    State.AccessPlanGroup = hasAccess.Model.Metadata["PlanGroup"].ToString();
             }
 
             return Status.Success;
