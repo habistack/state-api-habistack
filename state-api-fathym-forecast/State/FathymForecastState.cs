@@ -16,6 +16,7 @@ using Microsoft.Azure.WebJobs.Extensions.SignalRService;
 using Newtonsoft.Json.Converters;
 using System.Runtime.Serialization;
 using System.Collections.Generic;
+using LCU.Personas.API;
 
 namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
 {
@@ -34,10 +35,7 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
         public virtual string AccessPlanGroup { get; set; }
         
         [DataMember]
-        public virtual Dictionary<string, string> APIKeys { get; set; }
-        
-        [DataMember]
-        public virtual string APISiteURL { get; set; }
+        public virtual List<APIAccessKeyData> APIKeys { get; set; }
         
         [DataMember]
         public virtual bool HasAccess { get; set; }
@@ -46,7 +44,16 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
         public virtual bool Loading { get; set; }
         
         [DataMember]
+        public virtual int MaxPointQueries { get; set; }
+        
+        [DataMember]
+        public virtual string OpenAPISource { get; set; }
+        
+        [DataMember]
         public virtual UsageStateTypes UsageState { get; set; }
+        
+        [DataMember]
+        public virtual string UserEnterpriseLookup { get; set; }
     }
 
     [DataContract]

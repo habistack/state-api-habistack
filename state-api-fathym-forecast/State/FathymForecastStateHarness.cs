@@ -23,110 +23,217 @@ using LCU.Personas.Client.DevOps;
 using LCU.Personas.Enterprises;
 using LCU.Personas.Client.Applications;
 using Fathym.API;
+using LCU.Personas.Client.Security;
+using Fathym.Design;
+using LCU.Personas.API;
 
 namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
 {
     public class FathymForecastStateHarness : LCUStateHarness<FathymForecastState>
     {
         #region Fields
-        protected readonly string lcuApiSiteUrl;
-        
-        protected readonly string forecastEntLookup;
         #endregion
 
         #region Properties
         #endregion
 
         #region Constructors
-        public FathymForecastStateHarness(FathymForecastState state)
-            : base(state ?? new FathymForecastState())
+        public FathymForecastStateHarness(FathymForecastState state, ILogger log)
+            : base(state ?? new FathymForecastState(), log)
         {
-            lcuApiSiteUrl = Environment.GetEnvironmentVariable("LCU-API-SITE-URL");
-            
-            forecastEntLookup = Environment.GetEnvironmentVariable("LCU-ENTERPRISE-LOOKUP");
         }
         #endregion
 
         #region API Methods
-        public virtual async Task<Status> CreateAPISubscription(EnterpriseArchitectClient entArch, string entLookup, string username)
+        public virtual async Task<Status> EnsureAPISubscription(EnterpriseArchitectClient entArch, string entLookup, string username)
         {
-            if (State.HasAccess)
-            {
-                var response = await entArch.EnsureForecastAPISubscription(new EnsureForecastAPISubscriptionRequset()
+            await DesignOutline.Instance.Retry()
+                .SetActionAsync(async () =>
                 {
-                    SubscriptionType = $"{State.AccessLicenseType}-{State.AccessPlanGroup}".ToLower()
-                }, forecastEntLookup, username);
+                    try
+                    {
+                        var resp = await entArch.EnsureAPISubscription(new EnsureAPISubscriptionRequset()
+                        {
+                            SubscriptionType = $"{State.AccessLicenseType}-{State.AccessPlanGroup}".ToLower()
+                        }, entLookup, username);
 
-                //  TODO:  Handle API error
-            }
+                        //  TODO:  Handle API error
+
+                        return !resp.Status;
+                    }
+                    catch (Exception ex)
+                    {
+                        log.LogError(ex, "Failed ensuring API subscription");
+
+                        return true;
+                    }
+                })
+                .SetCycles(5)
+                .SetThrottle(25)
+                .SetThrottleScale(2)
+                .Run();
 
             return await LoadAPIKeys(entArch, entLookup, username);
         }
 
-        public virtual async Task<Status> GenerateAPIKeys(EnterpriseArchitectClient entArch, string entLookup, string username, string keyType)
+        public virtual async Task EnsureUserEnterprise(EnterpriseArchitectClient entArch, EnterpriseManagerClient entMgr,
+            SecurityManagerClient secMgr, string parentEntLookup, string username)
         {
-            if (State.HasAccess)
+            if (State.UserEnterpriseLookup.IsNullOrEmpty())
             {
-                var response = await entArch.GenerateForecastAPIKeys(new GenerateForecastAPIKeysRequset()
-                {
-                    KeyType = keyType
-                }, forecastEntLookup, username);
+                await DesignOutline.Instance.Retry()
+                    .SetActionAsync(async () =>
+                    {
+                        try
+                        {
+                            var hostLookup = $"{parentEntLookup}|{username}";
 
-                //  TODO:  Handle API error
+                            log.LogInformation($"Ensuring user enterprise for {hostLookup}...");
+
+                            var getResp = await entMgr.ResolveHost(hostLookup, false);
+
+                            if (!getResp.Status || getResp.Model == null)
+                            {
+                                var createResp = await entArch.CreateEnterprise(new CreateEnterpriseRequest()
+                                {
+                                    Name = username,
+                                    Description = username,
+                                    Host = hostLookup
+                                }, parentEntLookup, username);
+
+                                if (createResp.Status)
+                                    State.UserEnterpriseLookup = createResp.Model.EnterpriseLookup;
+                            }
+                            else
+                                State.UserEnterpriseLookup = getResp.Model.EnterpriseLookup;
+
+                            return State.UserEnterpriseLookup.IsNullOrEmpty();
+                        }
+                        catch (Exception ex)
+                        {
+                            log.LogError(ex, "Failed ensuring user enterprise");
+
+                            return true;
+                        }
+                    })
+                    .SetCycles(5)
+                    .SetThrottle(25)
+                    .SetThrottleScale(2)
+                    .Run();
             }
 
-            return await LoadAPIKeys(entArch, forecastEntLookup, username);
+            if (State.UserEnterpriseLookup.IsNullOrEmpty())
+                throw new Exception("Unable to establish the user's enterprise, please try again.");
         }
 
-        public virtual async Task<Status> HasAccess(IdentityManagerClient idMgr, string entLookup, string username)
+        public virtual async Task<Status> HasLicenseAccess(IdentityManagerClient idMgr, string entLookup, string username)
         {
-            var hasAccess = await idMgr.HasLicenseAccess(forecastEntLookup, username, Personas.AllAnyTypes.All, new List<string>() { "forecast" });
+            await DesignOutline.Instance.Retry()
+                .SetActionAsync(async () =>
+                {
+                    try
+                    {
+                        var hasAccess = await idMgr.HasLicenseAccess(entLookup, username, Personas.AllAnyTypes.All, new List<string>() { "iot" });
 
-            State.HasAccess = hasAccess.Status;
+                        State.HasAccess = hasAccess.Status;
 
-            if (State.HasAccess)
-            {
-                if (hasAccess.Model.Metadata.ContainsKey("LicenseType"))
-                    State.AccessLicenseType = hasAccess.Model.Metadata["LicenseType"].ToString();
+                        if (State.HasAccess)
+                        {
+                            if (hasAccess.Model.Metadata.ContainsKey("LicenseType"))
+                                State.AccessLicenseType = hasAccess.Model.Metadata["LicenseType"].ToString();
 
-                if (hasAccess.Model.Metadata.ContainsKey("PlanGroup"))
-                    State.AccessPlanGroup = hasAccess.Model.Metadata["PlanGroup"].ToString();
-            }
+                            if (hasAccess.Model.Metadata.ContainsKey("PlanGroup"))
+                                State.AccessPlanGroup = hasAccess.Model.Metadata["PlanGroup"].ToString();
+
+                            if (hasAccess.Model.Metadata.ContainsKey("PointQueries"))
+                                State.MaxPointQueries = hasAccess.Model.Metadata["PointQueries"].ToString().As<int>();
+                        }
+                        else
+                        {
+                            State.AccessLicenseType = "forecast";
+
+                            State.AccessPlanGroup = "hobby";
+
+                            State.MaxPointQueries = 10000;
+                        }
+
+                        return false;
+                    }
+                    catch (Exception ex)
+                    {
+                        log.LogError(ex, "Failed checking has license access type");
+
+                        return true;
+                    }
+                })
+                .SetCycles(5)
+                .SetThrottle(25)
+                .SetThrottleScale(2)
+                .Run();
 
             return Status.Success;
         }
 
         public virtual async Task<Status> LoadAPIKeys(EnterpriseArchitectClient entArch, string entLookup, string username)
         {
-            State.APIKeys = new Dictionary<string, string>();
+            State.APIKeys = new List<APIAccessKeyData>();
 
-            if (State.HasAccess)
-            {
-                var response = await entArch.LoadForecastAPIKeys(forecastEntLookup, username);
+            await DesignOutline.Instance.Retry()
+                .SetActionAsync(async () =>
+                {
+                    try
+                    {
+                        var resp = await entArch.LoadAPIKeys(entLookup, username);
 
-                //  TODO:  Handle API error
+                        //  TODO:  Handle API error
 
-                State.APIKeys = response.Model?.Metadata.ToDictionary(m => m.Key, m => m.Value.ToString());
-            }
+                        State.APIKeys = resp.Model?.Metadata.Select(m => new APIAccessKeyData()
+                        {
+                            Key = m.Value.ToString(),
+                            KeyName = m.Key
+                        }).ToList();
+
+                        return !resp.Status;
+                    }
+                    catch (Exception ex)
+                    {
+                        log.LogError(ex, "Failed loading API Keys");
+
+                        return true;
+                    }
+                })
+                .SetCycles(5)
+                .SetThrottle(25)
+                .SetThrottleScale(2)
+                .Run();
 
             return Status.Success;
         }
 
-        public virtual async Task<Status> Refresh(EnterpriseArchitectClient entArch, IdentityManagerClient idMgr, string entLookup, string username)
+        public virtual async Task<Status> LoadAPIOptions()
         {
-            Status status = await HasAccess(idMgr, entLookup, username);
+            State.OpenAPISource = "https://www.habistack.com/open-api/habistack-ground-weather.openapi.json";
 
-            if (status)
-            {
-                status = await LoadAPIKeys(entArch, entLookup, username);
+            return Status.Success;
+        }
 
-                if (State.APIKeys.IsNullOrEmpty())
-                    status = await CreateAPISubscription(entArch, entLookup, username);
+        public virtual async Task<Status> Refresh(EnterpriseArchitectClient entArch, EnterpriseManagerClient entMgr, 
+            IdentityManagerClient idMgr, SecurityManagerClient secMgr, StateDetails stateDetails)
+        {
+            await EnsureUserEnterprise(entArch, entMgr, secMgr, stateDetails.EnterpriseLookup, stateDetails.Username);
 
-                State.APISiteURL = lcuApiSiteUrl;
-            }
+            await Task.WhenAll(
+                HasLicenseAccess(idMgr, stateDetails.EnterpriseLookup, stateDetails.Username)
+            );
+            
+            await Task.WhenAll(
+                EnsureAPISubscription(entArch, stateDetails.EnterpriseLookup, stateDetails.Username),
+                LoadAPIOptions()
+            );
 
-            return status;
+            State.Loading = false;
+
+            return Status.Success;
         }
         #endregion
     }
