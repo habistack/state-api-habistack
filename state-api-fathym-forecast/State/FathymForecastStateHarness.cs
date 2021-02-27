@@ -54,7 +54,7 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
                     {
                         var resp = await entArch.EnsureAPISubscription(new EnsureAPISubscriptionRequset()
                         {
-                            SubscriptionType = $"{State.AccessLicenseType}-{State.AccessPlanGroup}".ToLower()
+                            SubscriptionType = buildSubscriptionType()
                         }, entLookup, username);
 
                         //  TODO:  Handle API error
@@ -183,7 +183,7 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
                 {
                     try
                     {
-                        var resp = await entArch.LoadAPIKeys(entLookup, username);
+                        var resp = await entArch.LoadAPIKeys(entLookup, buildSubscriptionType(), username);
 
                         //  TODO:  Handle API error
 
@@ -217,7 +217,7 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
             return Status.Success;
         }
 
-        public virtual async Task<Status> Refresh(EnterpriseArchitectClient entArch, EnterpriseManagerClient entMgr, 
+        public virtual async Task<Status> Refresh(EnterpriseArchitectClient entArch, EnterpriseManagerClient entMgr,
             IdentityManagerClient idMgr, SecurityManagerClient secMgr, StateDetails stateDetails)
         {
             await EnsureUserEnterprise(entArch, entMgr, secMgr, stateDetails.EnterpriseLookup, stateDetails.Username);
@@ -225,7 +225,7 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
             await Task.WhenAll(
                 HasLicenseAccess(idMgr, stateDetails.EnterpriseLookup, stateDetails.Username)
             );
-            
+
             await Task.WhenAll(
                 EnsureAPISubscription(entArch, stateDetails.EnterpriseLookup, stateDetails.Username),
                 LoadAPIOptions()
@@ -234,6 +234,13 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
             State.Loading = false;
 
             return Status.Success;
+        }
+        #endregion
+
+        #region Helpers
+        protected virtual string buildSubscriptionType()
+        {
+            return $"{State.AccessLicenseType}-{State.AccessPlanGroup}".ToLower();
         }
         #endregion
     }
