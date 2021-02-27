@@ -187,6 +187,8 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
 
                         //  TODO:  Handle API error
 
+                        log.LogInformation($"Load API Keys response: {resp.ToJSON()}");
+
                         State.APIKeys = resp.Model?.Metadata.Select(m => new APIAccessKeyData()
                         {
                             Key = m.Value.ToString(),
