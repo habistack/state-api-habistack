@@ -133,7 +133,7 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
                 {
                     try
                     {
-                        var hasAccess = await idMgr.HasLicenseAccess(entLookup, username, Personas.AllAnyTypes.All, new List<string>() { "iot" });
+                        var hasAccess = await idMgr.HasLicenseAccess(entLookup, username, Personas.AllAnyTypes.All, new List<string>() { "forecast" });
 
                         State.HasAccess = hasAccess.Status;
 
