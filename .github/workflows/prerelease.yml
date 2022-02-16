@@ -7,11 +7,11 @@ on:
     - 'feature/**'
     
 env:
-  AZURE_FUNCTIONAPP_NAME: 'fathym-cloud-prd-personas-state-api-habistack'  # set this to your application's name
+  AZURE_FUNCTIONAPP_NAME: 'fcp-habistack'  # set this to your application's name
   AZURE_FUNCTIONAPP_PACKAGE_PATH: 'state-api-habistack'    # set this to the path to your web app project, defaults to the repository root 
   project_file: 'state-api-habistack/state-api-habistack.csproj'
   nuget_feed_name: 'LCU'
-  nuget_feed_source: 'https://fathym.pkgs.visualstudio.com/_packaging/LCU/nuget/v3/index.json'
+  nuget_feed_source: 'https://pkgs.dev.azure.com/fathym/_packaging/LCU/nuget/v3/index.json'
   nuget_config: 'nuget.config'
 
 jobs:
