@@ -21,6 +21,7 @@ using LCU.Personas.Client.Enterprises;
 using LCU.Personas.Client.Identity;
 using LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State;
 using LCU.Personas.Client.Security;
+using LCU.State.API.Habistack.Host.TempRefit;
 
 namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.Host
 {
@@ -31,22 +32,46 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.Host
 
     public class Refresh
     {
-        protected readonly EnterpriseArchitectClient entArch;
+        // protected readonly EnterpriseArchitectClient entArch;
 
-        protected readonly EnterpriseManagerClient entMgr;
+        // protected readonly EnterpriseManagerClient entMgr;
 
-        protected readonly IdentityManagerClient idMgr;
+        // protected readonly IdentityManagerClient idMgr;
 
-        protected readonly SecurityManagerClient secMgr;
+        // protected readonly SecurityManagerClient secMgr;
 
-        public Refresh(EnterpriseArchitectClient entArch, EnterpriseManagerClient entMgr, IdentityManagerClient idMgr, 
-            SecurityManagerClient secMgr)
+        protected IApplicationsIoTService appIoTArch;
+
+        protected IEnterprisesAPIManagementService entApiArch;
+
+        protected IEnterprisesAsCodeService eacSvc;
+
+        protected IEnterprisesManagementService entMgr;
+
+        protected IEnterprisesHostingManagerService entHostMgr;
+
+        protected IIdentityAccessService idMgr;
+
+        protected ILogger log;
+
+        protected ISecurityDataTokenService secMgr;
+
+        public Refresh(IApplicationsIoTService appIoTArch, IEnterprisesAPIManagementService entApiArch, IEnterprisesAsCodeService eacSvc, IEnterprisesManagementService entMgr, IEnterprisesHostingManagerService entHostMgr, 
+            IIdentityAccessService idMgr, ILogger<Refresh> log, ISecurityDataTokenService secMgr)
         {
-            this.entArch = entArch;
+            this.appIoTArch = appIoTArch;
+
+            this.entApiArch = entApiArch;
+
+            this.eacSvc = eacSvc;
 
             this.entMgr = entMgr;
 
+            this.entHostMgr = entHostMgr;
+
             this.idMgr = idMgr;
+
+            this.log = log;
 
             this.secMgr = secMgr;
         }
@@ -63,7 +88,7 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.Host
 
                 var stateDetails = StateUtils.LoadStateDetails(req);
 
-                return await harness.Refresh(entArch, entMgr, idMgr, secMgr, stateDetails);
+                return await harness.Refresh(stateDetails, entApiArch, eacSvc, entHostMgr, idMgr, secMgr);
             });
         }
     }

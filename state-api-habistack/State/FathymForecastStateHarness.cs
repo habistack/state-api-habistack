@@ -26,6 +26,7 @@ using Fathym.API;
 using LCU.Personas.Client.Security;
 using Fathym.Design;
 using LCU.Personas.API;
+using LCU.State.API.Habistack.Host.TempRefit;
 
 namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
 {
@@ -45,14 +46,14 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
         #endregion
 
         #region API Methods
-        public virtual async Task<Status> EnsureAPISubscription(EnterpriseArchitectClient entArch, string entLookup, string username)
+        public virtual async Task<Status> EnsureAPISubscription(IEnterprisesAPIManagementService entApiArch, string entLookup, string username)
         {
             await DesignOutline.Instance.Retry()
                 .SetActionAsync(async () =>
                 {
                     try
                     {
-                        var resp = await entArch.EnsureAPISubscription(new EnsureAPISubscriptionRequset()
+                        var resp = await entApiArch.EnsureAPISubscription(new EnsureAPISubscriptionRequest()
                         {
                             SubscriptionType = buildSubscriptionType()
                         }, entLookup, username);
@@ -73,47 +74,215 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
                 .SetThrottleScale(2)
                 .Run();
 
-            return await LoadAPIKeys(entArch, entLookup, username);
+            return await LoadAPIKeys(entApiArch, entLookup, username);
         }
 
-        public virtual async Task EnsureUserEnterprise(EnterpriseArchitectClient entArch, EnterpriseManagerClient entMgr,
-            SecurityManagerClient secMgr, string parentEntLookup, string username)
+        public virtual async Task EnsureUserEnterprise(IEnterprisesAsCodeService eacSvc, IEnterprisesHostingManagerService hostMgrSvc,
+            ISecurityDataTokenService dataTokenSvc, string parentEntLookup, string username)
         {
+
             if (State.UserEnterpriseLookup.IsNullOrEmpty())
             {
                 await DesignOutline.Instance.Retry()
                     .SetActionAsync(async () =>
                     {
                         try
-                        {
-                            var hostLookup = $"{parentEntLookup}|{username}";
-
-                            log.LogInformation($"Ensuring user enterprise for {hostLookup}...");
-
-                            var getResp = await entMgr.ResolveHost(hostLookup, false);
-
-                            if (!getResp.Status || getResp.Model == null)
                             {
-                                var createResp = await entArch.CreateEnterprise(new CreateEnterpriseRequest()
+                            var userHost = $"{parentEntLookup}|{username}";
+
+                            log.LogInformation($"Ensuring child enterprise for {userHost}.");
+
+                            var hostResp = await hostMgrSvc.ResolveHost(userHost);
+
+                            if (hostResp.Model == null)
+                            {
+                                var commitReq = new CommitEnterpriseAsCodeRequest()
                                 {
-                                    Name = username,
-                                    Description = username,
-                                    Host = hostLookup
-                                }, parentEntLookup, username);
+                                    EaC = new EnterpriseAsCode()
+                                    {
+                                        Enterprise = new EaCEnterpriseDetails()
+                                        {
+                                            Name = $"{username} Enterprise",
+                                            Description = $"{username} Enterprise",
+                                            ParentEnterpriseLookup = parentEntLookup,
+                                            PrimaryEnvironment = userHost,
+                                            PrimaryHost = userHost
+                                        },
+                                        Hosts = new Dictionary<string, EaCHost>()
+                                        {
+                                            {userHost, new EaCHost()}                                           
+                                        },
+                                        AccessRights = new Dictionary<string, EaCAccessRight>()
+                                        {
+                                            {
+                                                "Fathym.Global.Admin",
+                                                new EaCAccessRight()
+                                                {
+                                                    Name = "Fathym.Global.Admin",
+                                                    Description = "Fathym.Global.Admin",
+                                                }
+                                            },
+                                            {
+                                                "Fathym.User",
+                                                new EaCAccessRight()
+                                                {
+                                                    Name = "Fathym.User",
+                                                    Description = "Fathym.User",
+                                                }
+                                            }
+                                        },
+                                        Modifiers = new Dictionary<string, EaCDFSModifier>()
+                                        {
+                                            {
+                                                "html-base",
+                                                new EaCDFSModifier()
+                                                {
+                                                    Type = "LCU.Runtime.Applications.Modifiers.HTMLBaseDFSModifierManager, LCU.Runtime, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+                                                    Name = "HTML Base",
+                                                    Priority = 10000,
+                                                    Enabled = true,
+                                                    Details = new {}.ToJSON(),
+                                                    PathFilterRegex = ".*index.html"
+                                                }
+                                            },
+                                            {
+                                                "lcu-reg",
+                                                new EaCDFSModifier()
+                                                {
+                                                    Type = "LCU.Runtime.Applications.Modifiers.LCURegDFSModifierManager, LCU.Runtime, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+                                                    Name = "LCU Reg",
+                                                    Priority = 9000,
+                                                    Enabled = true,
+                                                    Details = new { StateDataToken = "lcu-state-config" }.ToJSON(),
+                                                    PathFilterRegex = ".*index.html"
+                                                }
+                                            }
+                                        },
+                                        DataTokens = new Dictionary<string, EaCDataToken>()
+                                        {
+                                            {
+                                                "EMULATED_DEVICE_ENABLED",
+                                                new EaCDataToken()
+                                                {
+                                                    Value = "false",
+                                                    Name = "EMULATED_DEVICE_ENABLED"                                                   
+                                                }
+                                            },
+                                            {
+                                                "TELEMETRY_SYNC_ENABLED",
+                                                new EaCDataToken()
+                                                {
+                                                    Value = "false",
+                                                    Name = "TELEMETRY_SYNC_ENABLED"                                                   
+                                                }                                                
+                                            }
+                                        },
+                                        Providers = new Dictionary<string, EaCProvider>()
+                                        {
+                                            {
+                                                "ADB2C", 
+                                                new EaCProvider()
+                                                {
+                                                    Name = "ADB2C",
+                                                    Description = "ADB2C Provider",
+                                                    Type = "ADB2C"
+                                                } 
+                                            }
+                                        },
+                                        Environments = new Dictionary<string, EaCEnvironmentAsCode>()
+                                        {
+                                            {
+                                                userHost,
+                                                new EaCEnvironmentAsCode()
+                                                {
+                                                    Environment = new EaCEnvironmentDetails()
+                                                    {
+                                                        Name = $"{username} Environment",
+                                                        Description = $"{username} Environment"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
 
-                                if (createResp.Status)
-                                    State.UserEnterpriseLookup = createResp.Model.EnterpriseLookup;
+                                    Username = username
+                                };
+
+                                // string adb2cAppId = null;
+
+                                // if (hostResp.Status)
+                                // {
+                                //     var adB2cAppIdToken = await dataTokenSvc.GetDataToken(EnterpriseContext.AD_B2C_APPLICATION_ID_LOOKUP, entLookup: hostResp.Model?.Lookup);
+
+                                //     adb2cAppId = adB2cAppIdToken?.Model?.Value;
+                                // }
+
+                                // if (adb2cAppId.IsNullOrEmpty() && !parentEntLookup.IsNullOrEmpty())
+                                // {
+                                //     //  TODO:  Create unique application in ADB2C to allow for multi tenant control of sign in
+
+                                //     var adB2cAppIdToken = await dataTokenSvc.GetDataToken(EnterpriseContext.AD_B2C_APPLICATION_ID_LOOKUP, entLookup: parentEntLookup);
+
+                                //     adb2cAppId = adB2cAppIdToken?.Model?.Value;
+
+                                //     commitReq.EaC.Providers.Add("ADB2C", new EaCProvider()
+                                //     {
+                                //         Name = "ADB2C",
+                                //         Description = "ADB2C Provider",
+                                //         Type = "ADB2C",
+                                //         Metadata = new Dictionary<string, JToken>()
+                                //         {
+                                //             { "ApplicationID", EnterpriseContext.AD_B2C_APPLICATION_ID_LOOKUP },
+                                //             { "Authority", "fathymcloudprd.onmicrosoft.com" }
+                                //         }
+                                //     });
+
+                                //     commitReq.EaC.DataTokens[EnterpriseContext.AD_B2C_APPLICATION_ID_LOOKUP] = new EaCDataToken()
+                                //     {
+                                //         Value = adb2cAppId,
+                                //         Name = "AD B2C Application ID",
+                                //         Description = "The AD B2C application ID used with authentication."
+                                //     };
+                                // }
+
+                                var commitResp = await eacSvc.Commit(commitReq);
+
+                                if (commitResp.Status)
+                                {
+                                    log.LogInformation($"Ensured child enterprise for {userHost}.");
+
+                                    hostResp = await hostMgrSvc.ResolveHost(userHost);
+
+                                    var parentGitHubDataToken = await dataTokenSvc.GetDataToken("LCU-GITHUB-ACCESS-TOKEN", entLookup: parentEntLookup, email: username);
+
+                                    if (parentGitHubDataToken.Model != null)
+                                    {
+                                        log.LogInformation($"Transferring GitHub access to child enterprise for {hostResp.Model.Lookup}.");
+
+                                        var setDTResp = await dataTokenSvc.SetDataToken(new DataToken()
+                                        {
+                                            Name = parentGitHubDataToken.Model.Name,
+                                            Description = parentGitHubDataToken.Model.Description,
+                                            Lookup = parentGitHubDataToken.Model.Lookup,
+                                            Value = parentGitHubDataToken.Model.Value
+                                        }, entLookup: hostResp.Model.Lookup, email: username);
+                                    }
+                                    State.UserEnterpriseLookup = hostResp.Model.Lookup;
+                                }
                             }
-                            else
-                                State.UserEnterpriseLookup = getResp.Model.EnterpriseLookup;
 
-                            return State.UserEnterpriseLookup.IsNullOrEmpty();
+                            log.LogInformation($"Ensuring child enterprise for {userHost}");
+
+                            State.UserEnterpriseLookup = hostResp.Model.Lookup;
+
+                            return true;
                         }
+
                         catch (Exception ex)
                         {
                             log.LogError(ex, "Failed ensuring user enterprise");
 
-                            return true;
+                            return false;
                         }
                     })
                     .SetCycles(5)
@@ -126,14 +295,14 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
                 throw new Exception("Unable to establish the user's enterprise, please try again.");
         }
 
-        public virtual async Task<Status> HasLicenseAccess(IdentityManagerClient idMgr, string entLookup, string username)
+        public virtual async Task<Status> HasLicenseAccess(IIdentityAccessService idMgr, string entLookup, string username)
         {
             await DesignOutline.Instance.Retry()
                 .SetActionAsync(async () =>
                 {
                     try
                     {
-                        var hasAccess = await idMgr.HasLicenseAccess(entLookup, username, Personas.AllAnyTypes.All, new List<string>() { "forecast" });
+                        var hasAccess = await idMgr.HasLicenseAccess(entLookup, username, AllAnyTypes.All, new List<string>() { "forecast" });
 
                         State.HasAccess = hasAccess.Status;
 
@@ -174,7 +343,7 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
             return Status.Success;
         }
 
-        public virtual async Task<Status> LoadAPIKeys(EnterpriseArchitectClient entArch, string entLookup, string username)
+        public virtual async Task<Status> LoadAPIKeys(IEnterprisesAPIManagementService entApiArch, string entLookup, string username)
         {
             State.APIKeys = new List<APIAccessKeyData>();
 
@@ -183,7 +352,7 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
                 {
                     try
                     {
-                        var resp = await entArch.LoadAPIKeys(entLookup, buildSubscriptionType(), username);
+                        var resp = await entApiArch.LoadAPIKeys(entLookup, buildSubscriptionType(), username);
 
                         //  TODO:  Handle API error
 
@@ -195,7 +364,7 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
                             KeyName = m.Key
                         }).ToList();
 
-                        return !resp.Status;
+                        return !resp.Status;                    
                     }
                     catch (Exception ex)
                     {
@@ -214,22 +383,22 @@ namespace LCU.State.API.NapkinIDE.NapkinIDE.FathymForecast.State
 
         public virtual async Task<Status> LoadAPIOptions()
         {
-            State.OpenAPISource = "https://www.habistack.com/open-api/habistack-ground-weather.openapi.json";
+            State.OpenAPISource = Environment.GetEnvironmentVariable("OPEN-API-SOURCE-URL");
 
             return Status.Success;
         }
 
-        public virtual async Task<Status> Refresh(EnterpriseArchitectClient entArch, EnterpriseManagerClient entMgr,
-            IdentityManagerClient idMgr, SecurityManagerClient secMgr, StateDetails stateDetails)
+        public virtual async Task<Status> Refresh(StateDetails stateDetails, IEnterprisesAPIManagementService entApiArch, IEnterprisesAsCodeService eacSvc, 
+            IEnterprisesHostingManagerService entHostMgr, IIdentityAccessService idMgr, ISecurityDataTokenService secMgr)
         {
-            await EnsureUserEnterprise(entArch, entMgr, secMgr, stateDetails.EnterpriseLookup, stateDetails.Username);
+            await EnsureUserEnterprise(eacSvc, entHostMgr, secMgr, stateDetails.EnterpriseLookup, stateDetails.Username);
 
             await Task.WhenAll(
                 HasLicenseAccess(idMgr, stateDetails.EnterpriseLookup, stateDetails.Username)
             );
 
             await Task.WhenAll(
-                EnsureAPISubscription(entArch, stateDetails.EnterpriseLookup, stateDetails.Username),
+                EnsureAPISubscription(entApiArch, stateDetails.EnterpriseLookup, stateDetails.Username),
                 LoadAPIOptions()
             );
 
